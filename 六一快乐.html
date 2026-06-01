@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>六一快乐 - 烟花动画</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: linear-gradient(145deg, #1e2b3c 0%, #0f1a24 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: -apple-system, 'SF Pro Display', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      overflow: hidden;
+      position: relative;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 星星背景 */
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: #fff;
+      border-radius: 50%;
+      animation: twinkle var(--dur) ease-in-out infinite alternate;
+      opacity: 0;
+    }
+    @keyframes twinkle {
+      0%   { opacity: 0.1; transform: scale(1); }
+      100% { opacity: var(--opa); transform: scale(1.5); }
+    }
+
+    /* 浮动气泡 */
+    .bubble {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 1;
+      animation: floatUp var(--dur) ease-in infinite;
+      animation-delay: var(--delay);
+      opacity: 0;
+    }
+    @keyframes floatUp {
+      0%   { opacity: 0; transform: translateY(0) scale(0.5); }
+      10%  { opacity: var(--opa); }
+      90%  { opacity: var(--opa); }
+      100% { opacity: 0; transform: translateY(-110vh) scale(1); }
+    }
+
+    .card {
+      position: relative;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.92);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      border-radius: 68px;
+      padding: 48px 32px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        inset 0 1px 2px rgba(255,255,255,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: 2px solid rgba(255,215,0,0.6);
+      animation: cardEntrance 0.8s ease-out both;
+    }
+    @keyframes cardEntrance {
+      0%   { opacity: 0; transform: scale(0.9) translateY(30px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* 旋转边框光晕 — 移动端降级：去掉伪元素避免性能问题 */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -2px; left: -2px; right: -2px; bottom: -2px;
+      border-radius: 70px;
+      background: conic-gradient(from 0deg, #FFD966, #FF6B6B, #4ECDC4, #FF9F1C, #F72585, #7209B7, #FFD966);
+      z-index: -1;
+      opacity: 0.5;
+      animation: rotateBorder 6s linear infinite;
+      filter: blur(2px);
+    }
+    @keyframes rotateBorder {
+      100% { transform: rotate(360deg); }
+    }
+
+    h1 {
+      font-size: 4rem;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, #FFD966, #FF6B6B, #FFB347);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+      word-break: keep-all;
+      animation: titleGlow 3s ease-in-out infinite alternate;
+    }
+    @keyframes titleGlow {
+      0%   { filter: brightness(1) drop-shadow(0 0 8px rgba(255,215,0,0.3)); }
+      100% { filter: brightness(1.1) drop-shadow(0 0 20px rgba(255,107,107,0.5)); }
+    }
+
+    .emoji-group {
+      font-size: 3.5rem;
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+    .emoji-group span {
+      display: inline-block;
+      animation: bounce 1s ease infinite alternate;
+      animation-delay: var(--d, 0s);
+    }
+    @keyframes bounce {
+      0%   { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-15px) rotate(5deg); }
+    }
+
+    .sub {
+      font-size: 1.5rem;
+      color: #FF6F61;
+      background: #FFF3E0;
+      display: inline-block;
+      padding: 8px 24px;
+      border-radius: 60px;
+      margin-top: 20px;
+      font-weight: bold;
+      box-shadow: inset 0 1px 3px #0001, 0 4px 8px #0001;
+      animation: fadeInUp 1s ease-out 0.5s both;
+    }
+    @keyframes fadeInUp {
+      0%   { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .fire-tip {
+      margin-top: 32px;
+      font-size: 1rem;
+      color: #FFE5B4;
+      background: rgba(0,0,0,0.5);
+      display: inline-block;
+      padding: 8px 20px;
+      border-radius: 40px;
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+      animation: fadeInUp 1s ease-out 0.8s both;
+      transition: background 0.3s;
+    }
+
+    .click-hint {
+      position: fixed;
+      bottom: 20px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #ffecb3;
+      background: rgba(0,0,0,0.4);
+      width: fit-content;
+      margin: 0 auto;
+      padding: 6px 16px;
+      border-radius: 30px;
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+      font-weight: normal;
+      animation: fadeInUp 1s ease-out 1.2s both;
+    }
+
+    /* 点击涟漪 */
+    .ripple {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 5;
+      border: 2px solid rgba(255,255,255,0.6);
+      animation: rippleExpand 0.6s ease-out forwards;
+    }
+    @keyframes rippleExpand {
+      0%   { width: 0; height: 0; opacity: 1; }
+      100% { width: 150px; height: 150px; opacity: 0; }
+    }
+
+    /* ─ 收款码弹窗 ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .modal-content {
+      background: linear-gradient(160deg, #ffffff 0%, #f0f4ff 100%);
+      border-radius: 32px;
+      padding: 40px 32px 32px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      box-shadow:
+        0 30px 60px rgba(0,0,0,0.4),
+        0 0 0 1px rgba(255,255,255,0.5) inset;
+      animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      max-height: 90vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    @keyframes modalSlideUp {
+      0%   { opacity: 0; transform: translateY(40px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: rgba(0,0,0,0.06);
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      line-height: 1;
+    }
+    .modal-close:active {
+      transform: scale(0.9);
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 6px;
+    }
+
+    .modal-subtitle {
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    .modal-qr-wrapper {
+      background: #fff;
+      border-radius: 20px;
+      padding: 16px;
+      display: inline-block;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border: 1px solid #eee;
+    }
+
+    .modal-qr-wrapper img {
+      display: block;
+      width: 260px;
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    .modal-footer {
+      margin-top: 20px;
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+    .modal-footer span {
+      background: linear-gradient(135deg, #FFD966, #FF6B6B);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 600;
+    }
+
+    /* 二维码按钮 */
+    .qr-btn {
+      margin-top: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #07C160, #06AD56);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(7,193,96,0.3);
+      animation: fadeInUp 1s ease-out 1s both;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .qr-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* ───────── 平板端适配 (≤768px) ───────── */
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+
+      .card {
+        border-radius: 48px;
+        padding: 40px 24px;
+        max-width: 90%;
+      }
+
+      .card::before { border-radius: 50px; }
+
+      h1 {
+        font-size: 3rem;
+        letter-spacing: 3px;
+        margin-bottom: 18px;
+      }
+
+      .emoji-group {
+        font-size: 3rem;
+        gap: 10px;
+        margin: 16px 0;
+      }
+
+      .sub {
+        font-size: 1.3rem;
+        padding: 8px 20px;
+        margin-top: 16px;
+      }
+
+      .fire-tip {
+        margin-top: 24px;
+        font-size: 0.95rem;
+      }
+
+      .qr-btn {
+        padding: 14px 32px;
+        font-size: 1.05rem;
+      }
+
+      .modal-content {
+        max-width: 90%;
+        padding: 32px 24px 28px;
+        border-radius: 28px;
+      }
+
+      .modal-qr-wrapper img { width: 240px; }
+    }
+
+    /* ───────── 手机端适配 (≤480px) ───────── */
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+
+      .card {
+        border-radius: 32px;
+        padding: 32px 16px;
+        max-width: calc(100vw - 24px);
+        box-shadow:
+          0 20px 40px -12px rgba(0, 0, 0, 0.5),
+          inset 0 1px 2px rgba(255,255,255,0.3);
+      }
+
+      /* 移动端去掉旋转边框（性能优化） */
+      .card::before {
+        animation: none;
+        opacity: 0.3;
+        background: linear-gradient(135deg, #FFD966, #FF6B6B, #4ECDC4);
+      }
+
+      h1 {
+        font-size: 2.2rem;
+        letter-spacing: 2px;
+        margin-bottom: 14px;
+        line-height: 1.2;
+      }
+
+      .emoji-group {
+        font-size: 2.2rem;
+        gap: 8px;
+        margin: 12px 0;
+      }
+      @keyframes bounce {
+        0%   { transform: translateY(0); }
+        100% { transform: translateY(-10px); }
+      }
+
+      .sub {
+        font-size: 1.1rem;
+        padding: 6px 16px;
+        border-radius: 40px;
+        margin-top: 12px;
+      }
+
+      .fire-tip {
+        margin-top: 18px;
+        font-size: 0.85rem;
+        padding: 6px 16px;
+      }
+
+      .click-hint { display: none; }
+
+      .qr-btn {
+        padding: 14px 28px;
+        font-size: 0.95rem;
+        margin-top: 14px;
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* 底部安全距离 */
+      .card { margin-bottom: env(safe-area-inset-bottom, 0px); }
+
+      /* 弹窗全屏风格 */
+      .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+      }
+
+      .modal-content {
+        max-width: 100%;
+        width: 100%;
+        border-radius: 32px 32px 0 0;
+        padding: 28px 20px 40px;
+        max-height: 85vh;
+        animation: modalSlideUpMobile 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      @keyframes modalSlideUpMobile {
+        0%   { opacity: 0; transform: translateY(100%); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+
+      .modal-title { font-size: 1.2rem; }
+      .modal-subtitle { font-size: 0.85rem; margin-bottom: 16px; }
+      .modal-qr-wrapper { padding: 12px; border-radius: 16px; }
+      .modal-qr-wrapper img { width: 100%; max-width: 260px; border-radius: 6px; }
+      .modal-close { top: 12px; right: 12px; width: 36px; height: 36px; }
+
+      .modal-footer {
+        margin-top: 16px;
+        font-size: 0.8rem;
+      }
+    }
+
+    /* ───────── 小屏手机 (≤360px) ───────── */
+    @media (max-width: 360px) {
+      .card { padding: 24px 14px; border-radius: 28px; }
+
+      h1 {
+        font-size: 1.8rem;
+        letter-spacing: 1px;
+      }
+
+      .emoji-group {
+        font-size: 1.8rem;
+        gap: 6px;
+      }
+
+      .sub { font-size: 1rem; }
+      .fire-tip { font-size: 0.8rem; }
+      .qr-btn { padding: 12px 20px; font-size: 0.9rem; }
+    }
+
+    /* 横屏适配 */
+    @media (max-height: 500px) and (orientation: landscape) {
+      body { padding: 8px 20px; }
+      .card {
+        padding: 20px 28px;
+        border-radius: 36px;
+        max-width: 80%;
+      }
+      h1 { font-size: 2rem; margin-bottom: 8px; }
+      .emoji-group { margin: 6px 0; font-size: 2rem; }
+      .sub { font-size: 1rem; margin-top: 8px; padding: 4px 14px; }
+      .fire-tip { margin-top: 12px; }
+      .qr-btn { margin-top: 8px; padding: 10px 24px; }
+      .click-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 星星层 -->
+<div class="stars" id="stars"></div>
+
+<!-- 浮动气泡 -->
+<div id="bubbles"></div>
+
+<div class="card">
+  <div class="emoji-group">
+    <span style="--d:0s">🎈</span>
+    <span style="--d:0.15s">🎉</span>
+    <span style="--d:0.3s">🧸</span>
+    <span style="--d:0.45s">🍭</span>
+  </div>
+  <h1>六一快乐！！！</h1>
+  <div class="emoji-group">
+    <span style="--d:0.1s">🎂</span>
+    <span style="--d:0.25s">🎁</span>
+    <span style="--d:0.4s">🎈</span>
+  </div>
+  <div class="sub">✨ 愿你永远天真烂漫 ✨</div>
+  
+  <button class="qr-btn" id="qrBtn">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"></rect>
+      <rect x="14" y="3" width="7" height="7"></rect>
+      <rect x="3" y="14" width="7" height="7"></rect>
+      <rect x="14" y="14" width="3" height="3"></rect>
+      <line x1="21" y1="14" x2="21" y2="21"></line>
+      <line x1="14" y1="21" x2="21" y2="21"></line>
+    </svg>
+    扫一扫，庆祝儿童节
+  </button>
+</div>
+
+<!-- 收款码弹窗 -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-content" id="modalContent">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-title">🎁 支持一下，庆祝儿童节！</div>
+    <div class="modal-subtitle">扫码支付，让快乐继续～</div>
+    <div class="modal-qr-wrapper">
+      <img src="qr-code.jpg" alt="收款码" id="qrImage">
+    </div>
+    <div class="modal-footer">
+      感谢你的 <span>慷慨</span> 🥰
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 星星背景 ──
+(function createStars() {
+  const container = document.getElementById('stars');
+  const isMobile = window.innerWidth <= 768;
+  const count = isMobile ? 50 : Math.min(120, Math.floor(window.innerWidth * window.innerHeight / 8000));
+  for (let i = 0; i < count; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    star.style.setProperty('--dur', (2 + Math.random() * 4) + 's');
+    star.style.setProperty('--opa', (0.4 + Math.random() * 0.6));
+    star.style.animationDelay = (Math.random() * 4) + 's';
+    const size = 1 + Math.random() * 2;
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    container.appendChild(star);
+  }
+})();
+
+// ── 浮动气泡 ──
+(function createBubbles() {
+  const container = document.getElementById('bubbles');
+  const isMobile = window.innerWidth <= 768;
+  const count = isMobile ? 6 : 12;
+  const bubbleColors = [
+    'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), rgba(255,107,107,0.15))',
+    'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), rgba(78,205,196,0.15))',
+    'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), rgba(255,215,0,0.15))',
+    'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), rgba(247,37,133,0.12))',
+  ];
+  for (let i = 0; i < count; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const size = 20 + Math.random() * 40;
+    b.style.width = size + 'px';
+    b.style.height = size + 'px';
+    b.style.left = Math.random() * 100 + '%';
+    b.style.bottom = -(size + 10) + 'px';
+    b.style.background = bubbleColors[i % bubbleColors.length];
+    b.style.border = '1px solid rgba(255,255,255,0.15)';
+    b.style.setProperty('--dur', (8 + Math.random() * 12) + 's');
+    b.style.setProperty('--delay', (Math.random() * 10) + 's');
+    b.style.setProperty('--opa', (0.3 + Math.random() * 0.3));
+    container.appendChild(b);
+  }
+})();
+
+// ── 烟花 ──
+const colors = [
+  ['#FFD166', '#FF6B6B', '#4ECDC4', '#FF9F1C'],
+  ['#F72585', '#B5179E', '#7209B7', '#560BAD'],
+  ['#06FFA5', '#FFD100', '#FF5E5B', '#00BBF9']
+];
+
+function shootRandomConfetti() {
+  const scalar = window.innerWidth / 800;
+  confetti({
+    particleCount: Math.floor(60 * scalar),
+    spread: 70,
+    origin: { y: 0.6, x: Math.random() * 0.8 + 0.1 },
+    startVelocity: 20,
+    colors: colors[Math.floor(Math.random() * colors.length)],
+    decay: 0.9, ticks: 180, gravity: 1.2, drift: 0.5
+  });
+  if (Math.random() > 0.6) {
+    confetti({
+      particleCount: 30 * scalar, spread: 45,
+      origin: { y: 0.5, x: Math.random() },
+      startVelocity: 15, colors: ['#FFE55C', '#FFAA5E', '#FF6F61']
+    });
+  }
+}
+
+function doubleCannon() {
+  const scalar = window.innerWidth / 1000;
+  confetti({
+    particleCount: 70 * scalar, angle: 60, spread: 55,
+    origin: { x: 0, y: 0.7 }, startVelocity: 25,
+    colors: ['#FFD966', '#FF8C42', '#E76F51']
+  });
+  confetti({
+    particleCount: 70 * scalar, angle: 120, spread: 55,
+    origin: { x: 1, y: 0.7 }, startVelocity: 25,
+    colors: ['#F4A261', '#E9C46A', '#2A9D8F']
+  });
+}
+
+function bigFirework() {
+  const scalar = Math.min(1.2, window.innerWidth / 600);
+  confetti({
+    particleCount: 180 * scalar, spread: 120,
+    origin: { y: 0.55, x: 0.5 }, startVelocity: 28,
+    colors: ['#FF4D6D', '#FFB703', '#9C89B8', '#70D6FF'],
+    decay: 0.9, gravity: 1, ticks: 200
+  });
+}
+
+// 点击涟漪
+function createRipple(x, y) {
+  const ripple = document.createElement('div');
+  ripple.className = 'ripple';
+  ripple.style.left = (x - 75) + 'px';
+  ripple.style.top = (y - 75) + 'px';
+  document.body.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+// ── 自动庆祝烟花 ──
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    bigFirework();
+    setTimeout(() => { doubleCannon(); shootRandomConfetti(); }, 200);
+    setTimeout(() => {
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => shootRandomConfetti(), i * 150);
+      }
+    }, 500);
+  }, 300);
+});
+
+// ── 点击放烟花（排除按钮和弹窗区域） ──
+let clickCooldown = false;
+document.body.addEventListener('click', (e) => {
+  if (e.target.closest('#qrBtn') || e.target.closest('.modal-overlay')) return;
+  if (clickCooldown) return;
+  clickCooldown = true;
+  setTimeout(() => clickCooldown = false, 200);
+
+  createRipple(e.clientX, e.clientY);
+  bigFirework();
+  setTimeout(() => doubleCannon(), 80);
+  setTimeout(() => shootRandomConfetti(), 150);
+  setTimeout(() => shootRandomConfetti(), 300);
+});
+
+// ── 收款码弹窗 ──
+const overlay = document.getElementById('modalOverlay');
+const modalContent = document.getElementById('modalContent');
+const qrBtn = document.getElementById('qrBtn');
+const modalClose = document.getElementById('modalClose');
+
+qrBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  overlay.classList.add('active');
+  bigFirework();
+  setTimeout(() => doubleCannon(), 100);
+});
+
+function closeModal() {
+  overlay.classList.remove('active');
+}
+
+modalClose.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeModal();
+});
+
+overlay.addEventListener('click', (e) => {
+  if (e.target === overlay) closeModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+modalContent.addEventListener('click', (e) => {
+  if (e.target.closest('.modal-close')) return;
+  createRipple(e.clientX, e.clientY);
+  shootRandomConfetti();
+});
+</script>
+</body>
+</html>
